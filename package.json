@@ -1,0 +1,10 @@
+{
+  "name": "offline-dice-live-bot",
+  "version": "1.0.0",
+  "description": "Automatic TikTok Live checker for Offline Dice",
+  "main": "checker.js",
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "tiktok-live-connector": "^2.0.0"
+  }
+}
