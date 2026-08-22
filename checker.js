@@ -23,6 +23,36 @@ admin.initializeApp({
 
 const db = admin.database();
 
+function getESTDateString() {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  const parts = formatter.formatToParts(new Date());
+  const year = parts.find(p => p.type === 'year').value;
+  const month = parts.find(p => p.type === 'month').value;
+  const day = parts.find(p => p.type === 'day').value;
+  return `${year}-${month}-${day}`;
+}
+
+async function handleDailyReset() {
+  const todayEST = getESTDateString();
+  const statsRef = db.ref('global_stats');
+  
+  await statsRef.transaction((data) => {
+    if (!data || typeof data !== 'object') {
+      return { total_dices: 0, last_reset_date: todayEST };
+    }
+    if (data.last_reset_date !== todayEST) {
+      data.total_dices = 0;
+      data.last_reset_date = todayEST;
+    }
+    return data;
+  });
+}
+
 async function checkIsLive(username) {
   try {
     const url = `https://www.tiktok.com/@${username}/live`;
@@ -35,7 +65,6 @@ async function checkIsLive(username) {
     });
 
     if (!response.ok) return false;
-
     const html = await response.text();
 
     return html.includes('"status":2') || 
@@ -48,9 +77,11 @@ async function checkIsLive(username) {
 }
 
 async function run() {
-  console.log("Checking streamer live statuses...");
-  const updates = {};
+  console.log("Checking daily reset and streamer live statuses...");
+  
+  await handleDailyReset();
 
+  const updates = {};
   for (const username of streamers) {
     const isLive = await checkIsLive(username);
     updates[username] = isLive;
